@@ -220,17 +220,17 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		CheckOrigin: func(r *http.Request) bool {
 			origin := r.Header["Origin"]
 			if p.config.Origin == "" {
-				log.Printf("CheckOrigin: Proxy has no configured Origin. Allowing origin %v to %v", origin, r.URL)
+				// log.Printf("CheckOrigin: Proxy has no configured Origin. Allowing origin %v to %v", origin, r.URL)
 				return true
 			}
 			if len(origin) == 0 {
-				log.Printf("CheckOrigin: No origin header. Denying request to %v", r.URL)
+				// log.Printf("CheckOrigin: No origin header. Denying request to %v", r.URL)
 				return false
 			}
 			if p.config.Origin == origin[0] {
 				return true
 			}
-			log.Printf("CheckOrigin '%v' != '%v'", p.config.Origin, origin[0])
+			// log.Printf("CheckOrigin '%v' != '%v'", p.config.Origin, origin[0])
 			return false
 		},
 	}

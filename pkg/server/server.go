@@ -30,6 +30,7 @@ import (
 
 	graphql "github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rawagner/graphql-transport-ws/graphqlws"
 )
 
@@ -461,6 +462,8 @@ func (s *Server) HTTPHandler() http.Handler {
 	})
 
 	// Helm Endpoints
+	handle("/metrics", promhttp.Handler())
+
 	handle("/api/helm/template", authHandlerWithUser(helmHandlers.HandleHelmRenderManifests))
 	handle("/api/helm/releases", authHandlerWithUser(helmHandlers.HandleHelmList))
 	handle("/api/helm/chart", authHandlerWithUser(helmHandlers.HandleChartGet))
