@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -10,6 +14,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	"sigs.k8s.io/yaml"
 
 	"github.com/openshift/console/pkg/auth"
@@ -298,4 +303,89 @@ func (h *helmHandlers) HandleIndexFile(user *auth.User, w http.ResponseWriter, r
 	}
 
 	w.Write(out)
+}
+
+func (h *helmHandlers) HandleHelmMetrics(user *auth.User, w http.ResponseWriter, r *http.Request) {
+	// Redirect to the "/metrics" endpoint in "openshift-console-operator" namespace
+	url := "https://metrics.openshift-console-operator.svc/metrics"
+	// ips, err := net.LookupIP("metrics.openshift-console-operator.svc")
+	// if err != nil {
+	// 	klog.Infof("Could not get IPs: %v\n", err)
+	// 	return
+	// }
+	// klog.Info("Redirected to metrics.openshift-console-operator: %s", ips[0].String())
+	// klog.Infof("user token %s", user.Token)
+	bearer := "Bearer " + user.Token
+	r.Header.Add("Authorization", bearer)
+	// http.Redirect(w, r, url, http.StatusSeeOther)
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	r.Body = ioutil.NopCloser(bytes.NewReader(body))
+	proxyReq, err := http.NewRequest(r.Method, url, bytes.NewReader(body))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	proxyReq.Header = make(http.Header)
+	for h, v := range r.Header {
+		proxyReq.Header[h] = v
+	}
+
+	// Mitigate: x509: certificate signed by unknown authority
+	klog.Info("Disable the client side certificate verification")
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	httpClient := http.Client{Transport: tr}
+	klog.Infof("httpClient: %+v", httpClient)
+	resp, err := httpClient.Do(proxyReq)
+	if err != nil {
+		klog.Infof("/metrics err: %v", err)
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	klog.Infof("/metrics response: %+v", resp)
+
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			klog.Fatal(err)
+		}
+		bodyString := string(bodyBytes)
+		klog.Infof("/metrics response body: %s", bodyString)
+	}
+
+	// Set response header
+	for h, v := range resp.Header {
+		w.Header()[h] = v
+	}
+	// Set response body
+	io.Copy(w, resp.Body)
+
+	defer resp.Body.Close()
+	// // parse the url
+	// url, _ := url.Parse("https://metrics.openshift-console-operator.svc/metrics")
+
+	// // create the reverse proxy
+	// proxy := httputil.NewSingleHostReverseProxy(url)
+	// proxy.Transport = &http.Transport{
+	// 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	// }
+
+	// // Update the headers to allow for SSL redirection
+	// r.URL.Host = url.Host
+	// r.URL.Scheme = url.Scheme
+	// r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
+	// r.Host = url.Host
+
+	// bearer := "Bearer " + user.Token
+	// r.Header.Add("Authorization", bearer)
+
+	// // Note that ServeHttp is non blocking and uses a go routine under the hood
+	// proxy.ServeHTTP(w, r)
 }

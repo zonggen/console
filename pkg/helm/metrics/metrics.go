@@ -1,13 +1,14 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	k8smetrics "k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog/v2"
 )
 
 var (
-	consoleHelmInstallCount = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	consoleHelmInstallCount = k8smetrics.NewCounterVec(
+		&k8smetrics.CounterOpts{
 			Name: "console_helm_install_count",
 			Help: "Number of Helm installation from console.",
 		},
@@ -16,7 +17,7 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(consoleHelmInstallCount)
+	legacyregistry.MustRegister(consoleHelmInstallCount)
 }
 
 // func HandleHelmMetrics(user *auth.User, w http.ResponseWriter, r *http.Request) {

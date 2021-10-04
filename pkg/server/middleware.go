@@ -25,7 +25,7 @@ func authMiddlewareWithUser(a *auth.Authenticator, handlerFunc func(user *auth.U
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := a.Authenticate(r)
 		if err != nil {
-			klog.V(4).Infof("authentication failed: %v", err)
+			klog.Infof("authentication failed: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

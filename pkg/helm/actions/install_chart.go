@@ -6,6 +6,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
+	"k8s.io/klog"
 )
 
 func InstallChart(ns, name, url string, vals map[string]interface{}, conf *action.Configuration) (*release.Release, error) {
@@ -42,7 +43,9 @@ func InstallChart(ns, name, url string, vals map[string]interface{}, conf *actio
 		return nil, err
 	}
 
+	klog.Info(">>> Calling metrics.HandleconsoleHelmInstallCount")
 	metrics.HandleconsoleHelmInstallCount(release.Name, ch.Metadata.Name, ch.Metadata.Version)
+	klog.Info("<<< Calling metrics.HandleconsoleHelmInstallCount")
 
 	return release, nil
 }

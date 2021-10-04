@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/coreos/pkg/health"
+	"k8s.io/klog"
 
 	"github.com/openshift/console/pkg/auth"
 	"github.com/openshift/console/pkg/graphql/resolver"
@@ -30,7 +31,6 @@ import (
 
 	graphql "github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rawagner/graphql-transport-ws/graphqlws"
 )
 
@@ -462,7 +462,10 @@ func (s *Server) HTTPHandler() http.Handler {
 	})
 
 	// Helm Endpoints
-	handle("/metrics", promhttp.Handler())
+	// handle("/metrics", promhttp.Handler())
+	klog.Info(">>> Adding /metrics handlder")
+	handle("/metrics", authHandlerWithUser(helmHandlers.HandleHelmMetrics))
+	klog.Info("<<< Adding /metrics handlder")
 
 	handle("/api/helm/template", authHandlerWithUser(helmHandlers.HandleHelmRenderManifests))
 	handle("/api/helm/releases", authHandlerWithUser(helmHandlers.HandleHelmList))
